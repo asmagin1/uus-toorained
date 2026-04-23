@@ -634,43 +634,90 @@ function renderLoginPage() {
             <div class="login-feature"><strong>Administreerimine</strong><span>Halda kasutajaid, impordi andmeid ja vaata logisid.</span></div>
           </div>
         </section>
+
         <section class="login-card">
           <h2>Logi sisse</h2>
           <p>${window.AppAuth?.isEnabled?.() ? 'Kasuta e-posti ja parooli.' : 'Kasuta oma kasutajanime ja parooli.'}</p>
+
           <form id="loginForm" class="login-form">
             <div class="form-grid single">
-              <label><span>${window.AppAuth?.isEnabled?.() ? 'E-post' : 'Kasutajanimi'}</span><input id="loginName" autocomplete="username" placeholder="${window.AppAuth?.isEnabled?.() ? 'Sisesta e-post' : 'Sisesta kasutajanimi'}"></label>
-              <label><span>Parool</span><div class="password-field"><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sisesta parool"><button type="button" class="button ghost small" id="togglePasswordBtn">Näita</button></div></label>
+              <label>
+                <span>${window.AppAuth?.isEnabled?.() ? 'E-post' : 'Kasutajanimi'}</span>
+                <input
+                  id="email"
+                  name="email"
+                  type="${window.AppAuth?.isEnabled?.() ? 'email' : 'text'}"
+                  autocomplete="username"
+                  placeholder="${window.AppAuth?.isEnabled?.() ? 'Sisesta e-post' : 'Sisesta kasutajanimi'}"
+                  required
+                >
+              </label>
+
+              <label>
+                <span>Parool</span>
+                <div class="password-field">
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    placeholder="Sisesta parool"
+                    required
+                  >
+                  <button type="button" class="button ghost small" id="togglePasswordBtn">Näita</button>
+                </div>
+              </label>
             </div>
+
             <div class="row-actions login-actions">
               <button class="button wide" id="loginBtn" type="submit">Sisene</button>
             </div>
           </form>
+
           <div id="loginMessage" class="hint"></div>
         </section>
       </div>
     </div>
   `;
-  const loginInput = $('#loginName');
-  const passwordInput = $('#loginPassword');
+
+  const emailInput = $('#email');
+  const passwordInput = $('#password');
   const message = $('#loginMessage');
+  const toggleBtn = $('#togglePasswordBtn');
+  const form = $('#loginForm');
+
   const handleLogin = async (event) => {
     event?.preventDefault?.();
-    const login = loginInput.value.trim();
-    const password = passwordInput.value.trim();
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
     message.textContent = '';
     message.classList.remove('error');
+
+    if (!email || !password) {
+      message.textContent = window.AppAuth?.isEnabled?.()
+        ? 'Sisesta e-post ja parool.'
+        : 'Sisesta kasutajanimi ja parool.';
+      message.classList.add('error');
+      return;
+    }
+
     if (window.AppAuth?.isEnabled?.()) {
       try {
-        await window.AppAuth.login(login, password);
+        await window.AppAuth.login(email, password);
         location.href = 'toorained.html';
       } catch (error) {
-        message.textContent = error?.message || 'Sisselogimine ebaõnnestus.';
+        console.error('Supabase login failed', error);
+        message.textContent = error?.message || 'Vale e-post või parool.';
         message.classList.add('error');
+        passwordInput.focus();
+        passwordInput.select();
       }
       return;
     }
-    const user = getUsers().find(item => item.login === login && item.password === password);
+
+    const user = getUsers().find(item => item.login === email && item.password === password);
     if (!user) {
       message.textContent = 'Vale kasutajanimi või parool.';
       message.classList.add('error');
@@ -678,18 +725,22 @@ function renderLoginPage() {
       passwordInput.select();
       return;
     }
+
     setCurrentUser(user);
     logAction('login', 'auth', user.login, 'Kasutaja logis sisse');
     location.href = 'toorained.html';
   };
-  $('#loginForm').addEventListener('submit', handleLogin);
-  $('#togglePasswordBtn').addEventListener('click', () => {
+
+  form.addEventListener('submit', handleLogin);
+
+  toggleBtn.addEventListener('click', () => {
     const showing = passwordInput.type === 'text';
     passwordInput.type = showing ? 'password' : 'text';
-    $('#togglePasswordBtn').textContent = showing ? 'Näita' : 'Peida';
+    toggleBtn.textContent = showing ? 'Näita' : 'Peida';
     passwordInput.focus();
   });
-  loginInput.focus();
+
+  emailInput.focus();
 }
 
 function renderToorainedPage() {
