@@ -2608,26 +2608,49 @@ function renderPriceControlPage() {
 
 async function init() {
   if (window.AppAuth?.bootstrapAuthState) {
-    try { await window.AppAuth.bootstrapAuthState(); } catch (e) { console.error('Auth bootstrap error', e); }
+    try {
+      await window.AppAuth.bootstrapAuthState();
+    } catch (e) {
+      console.error('Auth bootstrap error', e);
+    }
   }
+
   if (window.AppDB?.bootstrapState) {
-    try { await window.AppDB.bootstrapState(Object.values(APP_KEYS)); } catch (e) { console.error('State bootstrap error', e); }
+    try {
+      await window.AppDB.bootstrapState(Object.values(APP_KEYS));
+    } catch (e) {
+      console.error('State bootstrap error', e);
+    }
   }
+
   getUsers();
   ensureCurrentMonthPriceSnapshot();
+
   const currentPage = location.pathname.split('/').pop() || 'index.html';
-  if (currentPage !== 'index.html' && currentPage !== '') markCurrentUserSeen(currentPage);
-  if (location.pathname.endsWith('index.html') || location.pathname === '/' || location.pathname.endsWith('/')) {
+
+  if (currentPage !== 'index.html' && currentPage !== '') {
+    markCurrentUserSeen(currentPage);
+  }
+
+  if (
+    location.pathname.endsWith('index.html') ||
+    location.pathname === '/' ||
+    location.pathname.endsWith('/')
+  ) {
     if (getCurrentUser()) {
       location.href = 'toorained.html';
       return;
     }
-   function renderLoginPage() {
-  setTimeout(bindSupabaseLoginForm, 0);
-}
+
+    renderLoginPage();
+    setTimeout(bindSupabaseLoginForm, 0);
+    return;
   }
+
   if (!ensureAuth()) return;
+
   const page = location.pathname.split('/').pop();
+
   if (page === 'toorained.html') renderToorainedPage();
   else if (page === 'tarnijad.html') renderSuppliersPage();
   else if (page === 'sailivus.html') renderShelfLifePage();
@@ -2636,11 +2659,12 @@ async function init() {
   else if (page === 'admin.html') renderAdminPage();
 }
 
-window.addEventListener('DOMContentLoaded', () => { init().catch(err => console.error('Init error', err)); });
-
 function bindSupabaseLoginForm() {
   const form = document.querySelector('#loginForm');
-  if (!form) return;
+  if (!form) {
+    console.error('Login form not found');
+    return;
+  }
 
   if (form.dataset.supabaseBound === '1') return;
   form.dataset.supabaseBound = '1';
@@ -2684,10 +2708,15 @@ function bindSupabaseLoginForm() {
         return;
       }
 
- window.addEventListener('DOMContentLoaded', () => {
-  try {
-    init();
-  } catch (e) {
-    console.error(e);
-  }
+      window.location.href = 'toorained.html';
+    } catch (err) {
+      console.error('Login submit error', err);
+      if (errorBox) errorBox.textContent = 'Vale kasutajanimi või parool';
+      else alert('Vale kasutajanimi või parool');
+    }
+  });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  init().catch(err => console.error('Init error', err));
 });
