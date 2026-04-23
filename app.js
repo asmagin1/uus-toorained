@@ -2636,10 +2636,4 @@ async function init() {
 }
 
 window.addEventListener('DOMContentLoaded', () => { init().catch(err => console.error('Init error', err)); });
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<script src="supabase.js"></script>
-<script src="auth.js"></script>
-<script src="data.js"></script>
-<script src="app.js"></script>
-<script src="auth-override.js"></script>
+
