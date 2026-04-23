@@ -2684,11 +2684,10 @@ function bindSupabaseLoginForm() {
         return;
       }
 
-      window.location.href = 'toorained.html';
-    } catch (err) {
-      console.error('Login submit error', err);
-      if (errorBox) errorBox.textContent = 'Vale kasutajanimi või parool';
-      else alert('Vale kasutajanimi või parool');
-    }
-  });
-}
+ window.addEventListener('DOMContentLoaded', () => {
+  try {
+    init();
+  } catch (e) {
+    console.error(e);
+  }
+});
