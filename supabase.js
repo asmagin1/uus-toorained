@@ -1,16 +1,10 @@
 (function () {
-  if (!window.APP_CONFIG) {
-    console.error('APP_CONFIG puudub');
-    return;
+  try {
+    window.supabaseClient = window.supabase.createClient(
+      window.APP_CONFIG.SUPABASE_URL,
+      window.APP_CONFIG.SUPABASE_ANON_KEY
+    );
+  } catch (err) {
+    console.error('supabase init error', err);
   }
-
-  if (!window.supabase) {
-    console.error('Supabase CDN puudub');
-    return;
-  }
-
-  window.supabaseClient = window.supabase.createClient(
-    window.APP_CONFIG.SUPABASE_URL,
-    window.APP_CONFIG.SUPABASE_ANON_KEY
-  );
 })();
