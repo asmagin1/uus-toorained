@@ -1,16 +1,16 @@
 (function () {
-  function isConfigured() {
-    return !!(window.APP_CONFIG && APP_CONFIG.SUPABASE_URL && APP_CONFIG.SUPABASE_ANON_KEY && window.supabase);
+  if (!window.APP_CONFIG) {
+    console.error('APP_CONFIG puudub');
+    return;
   }
-  function isEnabled() {
-    return !!(window.APP_CONFIG && APP_CONFIG.DATA_MODE === 'supabase' && isConfigured());
+
+  if (!window.supabase) {
+    console.error('Supabase CDN puudub');
+    return;
   }
-  function getClient() {
-    if (!isEnabled()) return null;
-    if (!window.__ttSupabaseClient) {
-      window.__ttSupabaseClient = window.supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_ANON_KEY);
-    }
-    return window.__ttSupabaseClient;
-  }
-  window.AppSupabase = { isConfigured, isEnabled, getClient };
+
+  window.supabaseClient = window.supabase.createClient(
+    window.APP_CONFIG.SUPABASE_URL,
+    window.APP_CONFIG.SUPABASE_ANON_KEY
+  );
 })();
