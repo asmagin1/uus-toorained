@@ -2622,8 +2622,9 @@ async function init() {
       location.href = 'toorained.html';
       return;
     }
-    renderLoginPage();
-    return;
+   function renderLoginPage() {
+  setTimeout(bindSupabaseLoginForm, 0);
+}
   }
   if (!ensureAuth()) return;
   const page = location.pathname.split('/').pop();
@@ -2637,3 +2638,57 @@ async function init() {
 
 window.addEventListener('DOMContentLoaded', () => { init().catch(err => console.error('Init error', err)); });
 
+function bindSupabaseLoginForm() {
+  const form = document.querySelector('#loginForm');
+  if (!form) return;
+
+  if (form.dataset.supabaseBound === '1') return;
+  form.dataset.supabaseBound = '1';
+
+  const emailInput =
+    document.querySelector('#email') ||
+    form.querySelector('input[type="email"]') ||
+    form.querySelector('input[name="email"]') ||
+    form.querySelector('input[name="login"]') ||
+    form.querySelector('input[type="text"]');
+
+  const passwordInput =
+    document.querySelector('#password') ||
+    form.querySelector('input[type="password"]') ||
+    form.querySelector('input[name="password"]');
+
+  const errorBox =
+    document.querySelector('#loginError') ||
+    document.querySelector('.login-error') ||
+    document.querySelector('[data-login-error]');
+
+  if (!emailInput || !passwordInput) {
+    console.error('Login inputs not found');
+    return;
+  }
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    if (errorBox) errorBox.textContent = '';
+
+    const email = (emailInput.value || '').trim();
+    const password = passwordInput.value || '';
+
+    try {
+      const result = await window.login(email, password);
+
+      if (!result || !result.user) {
+        if (errorBox) errorBox.textContent = 'Vale kasutajanimi või parool';
+        else alert('Vale kasutajanimi või parool');
+        return;
+      }
+
+      window.location.href = 'toorained.html';
+    } catch (err) {
+      console.error('Login submit error', err);
+      if (errorBox) errorBox.textContent = 'Vale kasutajanimi või parool';
+      else alert('Vale kasutajanimi või parool');
+    }
+  });
+}
