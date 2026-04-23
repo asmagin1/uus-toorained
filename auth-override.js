@@ -1,111 +1,140 @@
 (function () {
-  async function getSessionSafe() {
-    try {
-      if (!window.supabaseClient) return null;
-      const { data, error } = await window.supabaseClient.auth.getSession();
-      if (error) {
-        console.error('getSession error', error);
-        return null;
-      }
-      return data.session || null;
-    } catch (err) {
-      console.error('getSession exception', err);
-      return null;
-    }
+  function findLoginForm() {
+    return (
+      document.querySelector('#loginForm') ||
+      document.querySelector('form') ||
+      null
+    );
   }
 
-  async function handleLoginForm() {
-    const loginForm = document.querySelector('#loginForm');
-    if (!loginForm) return false;
+  function findEmailInput(root) {
+    return (
+      root.querySelector('#email') ||
+      root.querySelector('input[type="email"]') ||
+      root.querySelector('input[name="email"]') ||
+      root.querySelector('input[name="login"]') ||
+      root.querySelector('input[type="text"]')
+    );
+  }
 
-    const emailInput =
-      document.querySelector('#email') ||
-      document.querySelector('input[type="email"]') ||
-      document.querySelector('input[name="email"]') ||
-      document.querySelector('input[name="login"]');
+  function findPasswordInput(root) {
+    return (
+      root.querySelector('#password') ||
+      root.querySelector('input[type="password"]') ||
+      root.querySelector('input[name="password"]')
+    );
+  }
 
-    const passwordInput =
-      document.querySelector('#password') ||
-      document.querySelector('input[type="password"]') ||
-      document.querySelector('input[name="password"]');
-
-    const errorBox =
+  function setError(message) {
+    const box =
       document.querySelector('#loginError') ||
       document.querySelector('.login-error') ||
       document.querySelector('[data-login-error]');
 
-    if (!emailInput || !passwordInput) {
-      console.warn('Login inputs not found');
-      return false;
+    if (box) {
+      box.textContent = message || '';
+    } else if (message) {
+      alert(message);
     }
-
-    const clonedForm = loginForm.cloneNode(true);
-    loginForm.parentNode.replaceChild(clonedForm, loginForm);
-
-    clonedForm.addEventListener('submit', async function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (errorBox) errorBox.textContent = '';
-
-      const email = (document.querySelector('#email')?.value ||
-        document.querySelector('input[type="email"]')?.value ||
-        document.querySelector('input[name="email"]')?.value ||
-        document.querySelector('input[name="login"]')?.value ||
-        '').trim();
-
-      const password = (document.querySelector('#password')?.value ||
-        document.querySelector('input[type="password"]')?.value ||
-        document.querySelector('input[name="password"]')?.value ||
-        '');
-
-      try {
-        if (!window.login) {
-          throw new Error('window.login puudub');
-        }
-
-        const result = await window.login(email, password);
-
-        if (!result || !result.user) {
-          if (errorBox) {
-            errorBox.textContent = 'Vale kasutajanimi või parool';
-          } else {
-            alert('Vale kasutajanimi või parool');
-          }
-          return;
-        }
-
-        window.location.href = 'toorained.html';
-      } catch (err) {
-        console.error('Supabase login failed', err);
-        if (errorBox) {
-          errorBox.textContent = 'Vale kasutajanimi või parool';
-        } else {
-          alert('Vale kasutajanimi või parool');
-        }
-      }
-    });
-
-    return true;
   }
 
-  async function protectInnerPages() {
-    const isLoginPage =
-      location.pathname.endsWith('/index.html') ||
-      location.pathname.endsWith('/') ||
-      /index\.html$/i.test(location.pathname);
+  async function doSupabaseLogin(email, password) {
+    if (!window.login) throw new Error('window.login puudub');
+    const result = await window.login(email, password);
+    if (!result || !result.user) {
+      throw new Error('Vale kasutajanimi või parool');
+    }
+    window.location.href = 'toorained.html';
+  }
 
-    const session = await getSessionSafe();
+  function killOldHandlers(form) {
+    const cleanForm = form.cloneNode(true);
+    form.parentNode.replaceChild(cleanForm, form);
+    return cleanForm;
+  }
 
-    if (isLoginPage) {
-      if (session) {
-        window.location.href = 'toorained.html';
-        return true;
-      }
-      return false;
+  function wireLogin(form) {
+    const emailInput = findEmailInput(form);
+    const passwordInput = findPasswordInput(form);
+
+    if (!emailInput || !passwordInput) {
+      console.error('Login fields not found');
+      return;
     }
 
-    if (!session) {
+    const submitHandler = async function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof e.stopImmediatePropagation === 'function') {
+        e.stopImmediatePropagation();
+      }
+
+      setError('');
+
+      const email = (findEmailInput(form)?.value || '').trim();
+      const password = findPasswordInput(form)?.value || '';
+
+      try {
+        await doSupabaseLogin(email, password);
+      } catch (err) {
+        console.error('Supabase login failed', err);
+        setError('Vale kasutajanimi või parool');
+      }
+
+      return false;
+    };
+
+    form.addEventListener('submit', submitHandler, true);
+    form.addEventListener('submit', submitHandler, false);
+
+    const buttons = form.querySelectorAll('button, input[type="submit"]');
+    buttons.forEach((btn) => {
+      btn.onclick = null;
+      btn.addEventListener(
+        'click',
+        async function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (typeof e.stopImmediatePropagation === 'function') {
+            e.stopImmediatePropagation();
+          }
+
+          setError('');
+
+          const email = (findEmailInput(form)?.value || '').trim();
+          const password = findPasswordInput(form)?.value || '';
+
+          try {
+            await doSupabaseLogin(email, password);
+          } catch (err) {
+            console.error('Supabase login failed', err);
+            setError('Vale kasutajanimi või parool');
+          }
+
+          return false;
+        },
+        true
+      );
+    });
+  }
+
+  async function protectPages() {
+    if (!window.supabaseClient) return;
+
+    const isLoginPage =
+      location.pathname.endsWith('/index.html') ||
+      location.pathname === '/' ||
+      /index\.html$/i.test(location.pathname);
+
+    const { data } = await window.supabaseClient.auth.getSession();
+    const session = data?.session || null;
+
+    if (isLoginPage && session) {
+      window.location.href = 'toorained.html';
+      return true;
+    }
+
+    if (!isLoginPage && !session) {
       window.location.href = 'index.html';
       return true;
     }
@@ -114,28 +143,28 @@
   }
 
   function wireLogout() {
-    const btn =
+    const logoutBtn =
       document.querySelector('#logoutBtn') ||
       document.querySelector('[data-logout]');
 
-    if (!btn || !window.supabaseClient) return;
+    if (!logoutBtn || !window.logout) return;
 
-    btn.addEventListener('click', async function (e) {
+    logoutBtn.onclick = async function (e) {
       e.preventDefault();
-      try {
-        await window.supabaseClient.auth.signOut();
-      } catch (err) {
-        console.error('logout error', err);
-      }
-      window.location.href = 'index.html';
-    });
+      await window.logout();
+      return false;
+    };
   }
 
   document.addEventListener('DOMContentLoaded', async function () {
-    const redirected = await protectInnerPages();
+    const redirected = await protectPages();
     if (redirected) return;
 
-    await handleLoginForm();
+    const form = findLoginForm();
+    if (!form) return;
+
+    const cleanForm = killOldHandlers(form);
+    wireLogin(cleanForm);
     wireLogout();
   });
 })();
